@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ร้านสบู่ธรรมชาติ — สั่งซื้อสินค้า</title>
+  <style>
+    body { font-family: sans-serif; max-width: 720px; margin: 30px auto; padding: 0 16px; background: #f8fafc; color: #1e293b; }
+    .card { background: #fff; border-radius: 12px; padding: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.06); margin-bottom: 20px; }
+    .products { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; }
+    .prod { border: 1px solid #e2e8f0; border-radius: 10px; padding: 12px; text-align: center; }
+    .prod img { width: 100%; height: 160px; object-fit: cover; border-radius: 8px; background: #f1f5f9; }
+    label { display: block; margin-top: 12px; font-weight: 600; }
+    input, select, textarea { width: 100%; padding: 10px; margin-top: 6px; border: 1px solid #cbd5e1; border-radius: 8px; box-sizing: border-box; }
+    button { margin-top: 18px; width: 100%; padding: 12px; background: #0f766e; color: #fff; border: none; border-radius: 8px; font-size: 16px; cursor: pointer; }
+    button:hover { background: #115e59; }
+    #msg { margin-top: 14px; font-weight: 600; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>สบู่แฮนด์เมดสูตรธรรมชาติ</h1>
+    <p>เลือกสินค้าและกรอกที่อยู่สำหรับจัดส่งได้เลยครับ</p>
+    <div class="products">
+      <div class="prod">
+        <img src="soap-berry-1.jpg" alt="สบู่ SKU-01" />
+        <h3>SKU-01: สบู่น้ำนมข้าว</h3>
+        <p>ราคา 89 บาท / ก้อน</p>
+      </div>
+      <div class="prod">
+        <img src="soap.avif2.avif" alt="สบู่ SKU-02" />
+        <h3>SKU-02: สบู่ชาเขียว</h3>
+        <p>ราคา 99 บาท / ก้อน</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>แบบฟอร์มสั่งซื้อ</h2>
+    <form id="orderForm">
+      <label>ชื่อ-นามสกุล (สำหรับจ่าหน้าพัสดุ)</label>
+      <input type="text" id="name" required placeholder="เช่น สมชาย ใจดี" />
+
+      <label>เบอร์โทรศัพท์</label>
+      <input type="tel" id="phone" required placeholder="เช่น 0812345678" />
+
+      <label>ที่อยู่จัดส่งโดยละเอียด</label>
+      <textarea id="address" rows="3" required placeholder="บ้านเลขที่ ถนน ตำบล อำเภอ จังหวัด รหัสไปรษณีย์"></textarea>
+
+      <label>เลือกสินค้า (SKU)</label>
+      <select id="sku">
+        <option value="SKU-01 สบู่น้ำนมข้าว" data-price="89">SKU-01 สบู่น้ำนมข้าว (89 บาท)</option>
+        <option value="SKU-02 สบู่ชาเขียว" data-price="99">SKU-02 สบู่ชาเขียว (99 บาท)</option>
+      </select>
+
+      <label>จำนวน (ก้อน)</label>
+      <input type="number" id="qty" min="1" value="1" required />
+
+      <p><strong>ยอดรวมโดยประมาณ: <span id="totalText">89</span> บาท</strong></p>
+
+      <button type="submit">ยืนยันการสั่งซื้อ</button>
+    </form>
+    <div id="msg"></div>
+  </div>
+
+  <script>
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyQbDzNoWvoD1_MGkT6UoXY4LfiOG1jqOHBbidSzdveWlOy4BBe9PMrbKXV0CLuiDPb/exec";
+    const skuEl = document.getElementById("sku");
+    const qtyEl = document.getElementById("qty");
+    const totalText = document.getElementById("totalText");
+
+    function calcTotal() {
+      const price = Number(skuEl.selectedOptions[0].dataset.price || 0);
+      const qty = Math.max(1, Number(qtyEl.value || 1));
+      const total = price * qty;
+      totalText.textContent = total;
+      return total;
+    }
+
+    skuEl.addEventListener("change", calcTotal);
+    qtyEl.addEventListener("input", calcTotal);
+
+    document.getElementById("orderForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const msg = document.getElementById("msg");
+      msg.textContent = "กำลังบันทึกข้อมูล...";
+
+      const payload = {
+        name: document.getElementById("name").value.trim(),
+        phone: document.getElementById("phone").value.trim(),
+        address: document.getElementById("address").value.trim(),
+        sku: skuEl.value,
+        qty: Math.max(1, Number(qtyEl.value || 1)),
+        total: calcTotal()
+      };
+
+      try {
+        await fetch(SCRIPT_URL, {
+          method: "POST",
+          mode: "no-cors",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload)
+        });
+        msg.style.color = "#0f766e";
+        msg.textContent = "สั่งซื้อสำเร็จ! บันทึกข้อมูลลงระบบเรียบร้อยแล้วครับ";
+        e.target.reset();
+        calcTotal();
+      } catch (err) {
+        msg.style.color = "#dc2626";
+        msg.textContent = "เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง";
+      }
+    });
+  </script>
+</body>
+</html>
